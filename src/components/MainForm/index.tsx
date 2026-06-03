@@ -5,10 +5,17 @@ import { PlayCircleIcon } from 'lucide-react';
 import { useRef } from 'react';
 import type { TaskModel } from '../../models/TaskModels';
 import { useTaskContext } from '../../contexts/TaskContext/useTaskContext';
+import { getNextCycle } from '../../utils/getNextCycle';
+import { getNextCycleType } from '../../utils/getNextCycleType';
+import { formatSecondsToMinutes } from '../../utils/formatSecondsToMinutes';
 
 export function MainForm() {
-  const { setState } = useTaskContext();
+  const { state, setState } = useTaskContext();
   const taskNameInput = useRef<HTMLInputElement>(null);
+
+  // ciclos
+  const nextCycle = getNextCycle(state.currentCycle);
+  const nextCycleType = getNextCycleType(nextCycle);
 
   function handleCreateNewTask(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,8 +35,8 @@ export function MainForm() {
       startDate: Date.now(),
       completeDate: null,
       interruptDate: null,
-      duration: 1,
-      type: 'workTime',
+      duration: state.config[nextCycleType],
+      type: nextCycleType,
     };
 
     const secondsRemaining = newTask.duration * 60;
@@ -39,9 +46,9 @@ export function MainForm() {
         ...prevState,
         config: { ...prevState.config },
         activeTask: newTask,
-        currentCycle: 1, // Conferir
+        currentCycle: nextCycle,
         secondsRemaining, // chave com o mesmo nome (valor), pode omitir o valor
-        formattedSecondsRemaining: '00:00',
+        formattedSecondsRemaining: formatSecondsToMinutes(secondsRemaining),
         tasks: [...prevState.tasks, newTask],
       };
     });
@@ -63,9 +70,11 @@ export function MainForm() {
         <p>Próximo intervalo é de 25 min</p>
       </div>
 
-      <div className='formRow'>
-        <Cycles />
-      </div>
+      {state.currentCycle > 0 && (
+        <div className='formRow'>
+          <Cycles />
+        </div>
+      )}
 
       <div className='formRow'>
         <DefaultButton icon={<PlayCircleIcon />} />
