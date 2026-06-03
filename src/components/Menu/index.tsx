@@ -23,7 +23,9 @@ export function Menu() {
     light: <MoonIcon />,
   };
 
-  function handleThemeChange(event: React.MouseEvent<HTMLAnchorElement>) {
+  function handleThemeChange(
+    event: React.MouseEvent<HTMLAnchorElement, MouseEvent>,
+  ) {
     event.preventDefault();
 
     setTheme(prevTheme => {

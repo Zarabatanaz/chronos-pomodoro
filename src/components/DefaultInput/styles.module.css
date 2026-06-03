@@ -1,6 +1,5 @@
 .input {
-  background: transparent;
-  border: none;
+  background-color: transparent;
   text-align: center;
   font-size: 1.8rem;
   padding: 0.8rem;
@@ -14,7 +13,7 @@
 
 .input:focus {
   border-radius: 0.8rem;
-  border-color: var(--primary);
+  border: 0.2rem solid var(--primary);
 }
 
 .input::placeholder {
