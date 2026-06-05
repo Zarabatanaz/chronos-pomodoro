@@ -1,4 +1,4 @@
-import type { TaskModel } from './TaskModels';
+import type { TaskModel } from './TaskModel';
 
 // Estado -> Componente -> Filhos
 
