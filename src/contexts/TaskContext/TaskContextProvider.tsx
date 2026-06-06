@@ -5,13 +5,27 @@ import { taskReducer } from './taskReducer';
 import { TimerWorkerManager } from '../../workers/TimerWorkerManager';
 import { TaskActionTypes } from './taskActions';
 import { loadBeep } from '../../utils/loadBeep';
+import type { TaskStateModel } from '../../models/TaskStateModel';
 
 type TaskContextProviderProps = {
   children: React.ReactNode;
 };
 
 export function TaskContextProvider({ children }: TaskContextProviderProps) {
-  const [state, dispatch] = useReducer(taskReducer, initialTaskState);
+  const [state, dispatch] = useReducer(taskReducer, initialTaskState, () => {
+    const storageState = localStorage.getItem('state');
+
+    if (storageState === null) return initialTaskState;
+
+    const parsedStorageState = JSON.parse(storageState) as TaskStateModel;
+
+    return {
+      ...parsedStorageState,
+      activeTask: null,
+      secondsRemaining: 0,
+      formattedSecondsRemaining: '00:00',
+    };
+  });
   const playBeepRef = useRef<ReturnType<typeof loadBeep> | null>(null);
 
   const worker = TimerWorkerManager.getInstance();
@@ -39,9 +53,9 @@ export function TaskContextProvider({ children }: TaskContextProviderProps) {
   });
 
   useEffect(() => {
+    localStorage.setItem('state', JSON.stringify(state));
+
     if (!state.activeTask) {
-      // console.log(state);
-      // console.log('Worker terminado por falta de activeTask');
       worker.terminate();
     }
 
@@ -57,41 +71,6 @@ export function TaskContextProvider({ children }: TaskContextProviderProps) {
       playBeepRef.current = null;
     }
   }, [state.activeTask]);
-
-  // useEffect(() => {
-  //   const worker = TimerWorkerManager.getInstance();
-
-  //   if (!state.activeTask) {
-  //     worker.terminate();
-  //     console.log('Worker interrompido!');
-  //     return;
-  //   }
-
-  //   worker.onmessage(e => {
-  //     const countDownSeconds = e.data;
-
-  //     if (countDownSeconds <= 0) {
-  //       dispatch({ type: TaskActionTypes.COMPLETE_TASK });
-  //       worker.terminate();
-  //       console.log('Worker terminado!');
-  //       // return;
-  //     } else {
-  //       dispatch({
-  //         type: TaskActionTypes.COUNT_DOWN,
-  //         payload: { secondsRemaining: countDownSeconds },
-  //       });
-  //       console.log('contar...');
-  //     }
-  //   });
-
-  //   worker.postMessage(state);
-  //   console.log(state);
-
-  //   // return () => {
-  //   //   worker.terminate();
-  //   //   console.log('Worker terminado diferente!');
-  //   // };
-  // }, [state]);
 
   return (
     <TaskContext.Provider value={{ state, dispatch }}>
