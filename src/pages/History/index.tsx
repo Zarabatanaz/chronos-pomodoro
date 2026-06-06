@@ -9,36 +9,54 @@ import { useTaskContext } from '../../contexts/TaskContext/useTaskContext';
 import { formatDate } from '../../utils/formatDate';
 import { getTaskStatus } from '../../utils/getTaskStatus';
 import { sortTasks, type SortTasksOptions } from '../../utils/sortTasks';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { TaskActionTypes } from '../../contexts/TaskContext/taskActions';
+import { showMessage } from '../../adapters/showMessage';
 
 export function History() {
-  const { state } = useTaskContext();
-  const [sortTasksOptions, setSortTaskOptions] = useState<SortTasksOptions>(
-    () => {
-      return {
-        tasks: sortTasks({ tasks: state.tasks }),
-        field: 'startDate',
-        direction: 'desc',
-      };
-    },
+  const { state, dispatch } = useTaskContext();
+  const hasTasks = state.tasks.length > 0;
+
+  const [sortTaskOptions, setSortTaskOptions] = useState<
+    Pick<SortTasksOptions, 'field' | 'direction'>
+  >({
+    field: 'startDate',
+    direction: 'desc',
+  });
+
+  const sortedTasks = useMemo(
+    () =>
+      sortTasks({
+        tasks: state.tasks,
+        field: sortTaskOptions.field,
+        direction: sortTaskOptions.direction,
+      }),
+    [state.tasks, sortTaskOptions.direction, sortTaskOptions.field],
   );
 
-  function handleSortTasks({ field }: Pick<SortTasksOptions, 'field'>) {
-    const newDirection = sortTasksOptions.direction === 'desc' ? 'asc' : 'desc';
+  // Remove a mensagem da tela
+  useEffect(() => {
+    return () => {
+      showMessage.dismiss();
+    };
+  }, []);
 
-    setSortTaskOptions({
-      tasks: sortTasks({
-        direction: newDirection,
-        tasks: sortTasksOptions.tasks,
-        field,
-      }),
-      direction: newDirection,
+  function handleSortTasks({ field }: Pick<SortTasksOptions, 'field'>) {
+    setSortTaskOptions(prevState => ({
       field,
-    });
+      direction: prevState.direction === 'desc' ? 'asc' : 'desc',
+    }));
   }
 
   function handleResetHistory() {
-    console.log('reset');
+    showMessage.dismiss();
+    showMessage.confirm(
+      'Tem certeza que deseja apagar o histórico?',
+      confirmation => {
+        if (!confirmation) return;
+        dispatch({ type: TaskActionTypes.RESET_STATE });
+      },
+    );
   }
 
   return (
@@ -46,67 +64,77 @@ export function History() {
       <Container>
         <Heading>
           <span>History</span>
-          <span className={styles.buttonContainer}>
-            <DefaultButton
-              icon={<TrashIcon />}
-              color='red'
-              aria-label='Apagar todo o histórico'
-              title='Apagar histórico'
-              onClick={handleResetHistory}
-            />
-          </span>
+          {hasTasks && (
+            <span className={styles.buttonContainer}>
+              <DefaultButton
+                icon={<TrashIcon />}
+                color='red'
+                aria-label='Apagar todo o histórico'
+                title='Apagar histórico'
+                onClick={handleResetHistory}
+              />
+            </span>
+          )}
         </Heading>
       </Container>
 
       <Container>
-        <div className={styles.responsiveTable}>
-          <table>
-            <thead>
-              <tr>
-                <th
-                  onClick={() => handleSortTasks({ field: 'name' })}
-                  className={styles.thSort}
-                >
-                  Tarefa &#8597;
-                </th>
-                <th
-                  onClick={() => handleSortTasks({ field: 'duration' })}
-                  className={styles.thSort}
-                >
-                  Duração &#8597;
-                </th>
-                <th
-                  onClick={() => handleSortTasks({ field: 'startDate' })}
-                  className={styles.thSort}
-                >
-                  Data &#8597;
-                </th>
-                <th>Status</th>
-                <th>Tipo</th>
-              </tr>
-            </thead>
+        {hasTasks && (
+          <div className={styles.responsiveTable}>
+            <table>
+              <thead>
+                <tr>
+                  <th
+                    onClick={() => handleSortTasks({ field: 'name' })}
+                    className={styles.thSort}
+                  >
+                    Tarefa &#8597;
+                  </th>
+                  <th
+                    onClick={() => handleSortTasks({ field: 'duration' })}
+                    className={styles.thSort}
+                  >
+                    Duração &#8597;
+                  </th>
+                  <th
+                    onClick={() => handleSortTasks({ field: 'startDate' })}
+                    className={styles.thSort}
+                  >
+                    Data &#8597;
+                  </th>
+                  <th>Status</th>
+                  <th>Tipo</th>
+                </tr>
+              </thead>
 
-            <tbody>
-              {sortTasksOptions.tasks.map(task => {
-                const taskTypeDictionary = {
-                  workTime: 'Foco',
-                  shortBreakTime: 'Descanso curto',
-                  longBreakTime: 'Descanso longo',
-                };
+              <tbody>
+                {sortedTasks.map(task => {
+                  // {sortTasksOptions.tasks.map(task => {
+                  const taskTypeDictionary = {
+                    workTime: 'Foco',
+                    shortBreakTime: 'Descanso curto',
+                    longBreakTime: 'Descanso longo',
+                  };
 
-                return (
-                  <tr key={task.id}>
-                    <td>{task.name}</td>
-                    <td>{task.duration}min</td>
-                    <td>{formatDate(task.startDate)}</td>
-                    <td>{getTaskStatus(task, state.activeTask)}</td>
-                    <td>{taskTypeDictionary[task.type]}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                  return (
+                    <tr key={task.id}>
+                      <td>{task.name}</td>
+                      <td>{task.duration}min</td>
+                      <td>{formatDate(task.startDate)}</td>
+                      <td>{getTaskStatus(task, state.activeTask)}</td>
+                      <td>{taskTypeDictionary[task.type]}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {!hasTasks && (
+          <p style={{ textAlign: 'center', fontWeight: 'bold' }}>
+            Ainda não existem tarefas criadas.
+          </p>
+        )}
       </Container>
     </MainTemplate>
   );
