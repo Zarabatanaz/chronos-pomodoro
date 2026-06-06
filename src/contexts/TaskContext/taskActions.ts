@@ -6,6 +6,7 @@
 // payload <- os dados extras enviados junto com a action, se necessário para atualizar o estado
 
 import type { TaskModel } from '../../models/TaskModel';
+import type { TaskStateModel } from '../../models/TaskStateModel';
 
 // A maneira padrão da indústria para substituir enums é criar um objeto congelado e derivar o tipo a partir de suas chaves/valores
 
@@ -16,6 +17,7 @@ export const TaskActionTypes = {
   RESET_STATE: 'RESET_STATE',
   COUNT_DOWN: 'COUNT_DOWN',
   COMPLETE_TASK: 'COMPLETE_TASK',
+  CHANGE_SETTINGS: 'CHANGE_SETTINGS',
 } as const;
 
 // 2. Extraia o tipo dinamicamente a partir dos valores do objeto
@@ -30,6 +32,10 @@ export type TaskActionsWithPayload =
   | {
       type: typeof TaskActionTypes.COUNT_DOWN;
       payload: { secondsRemaining: number };
+    }
+  | {
+      type: typeof TaskActionTypes.CHANGE_SETTINGS;
+      payload: TaskStateModel['config'];
     };
 
 export type TaskActionsWithoutPayload =
